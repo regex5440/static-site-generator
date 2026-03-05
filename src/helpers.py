@@ -1,7 +1,7 @@
 
 from textnode import TextNode, TextType
-from htmlnode import LeafNode
-from re import findall
+from htmlnode import LeafNode, BlockType, HTMLNode, ParentNode
+from re import findall, match as regmatch
 
 def text_node_to_html_node(text_node: TextNode):
     match text_node.text_type:
@@ -108,3 +108,88 @@ def text_to_textnodes(text) -> list[TextNode]:
     nodes = split_nodes_image(nodes)
     nodes = split_nodes_link(nodes)
     return nodes
+
+def markdown_to_blocks(markdown: str):
+    blocks = []
+    for block in markdown.split("\n\n"):
+        block = block.strip()
+        if len(block) > 0:
+            blocks.append(block)
+    return blocks
+
+HEADING_REGEX = r"^#{1,6}\s(.+)$"
+CODE_BLOCK_REGEX = r"^```\n(.+\n?)+```$"
+QUOTE_REGEX = r"^>\s?(.+)$"
+UNORDERED_LI_REGEX = r"^(\n?-\s.+)+$"
+ORDERED_LI_REGEX = r"^(\n?\d\.\s.+)+$"
+
+def block_to_block_type(blockMd: str):
+    if regmatch(HEADING_REGEX, blockMd) != None:
+        return BlockType.HEADING
+    if regmatch(CODE_BLOCK_REGEX, blockMd) != None:
+        return BlockType.CODE
+    if regmatch(QUOTE_REGEX,blockMd) != None:
+        return BlockType.QUOTE
+    if regmatch(UNORDERED_LI_REGEX, blockMd) != None:
+        return BlockType.UNORDERED_LIST
+    if regmatch(ORDERED_LI_REGEX, blockMd) != None:
+        return BlockType.ORDERED_LIST
+    return BlockType.PARAGRAPH
+
+def block_to_html_node(block: str, type: BlockType):
+    match(type):
+        case BlockType.PARAGRAPH:
+            block = block.replace("\n"," ")
+            txtNodes = text_to_textnodes(block)
+            children = []
+            for node in txtNodes:
+                children.append(text_node_to_html_node(node))
+            return HTMLNode("p", children=children)
+        case BlockType.CODE:
+            block = block.replace("```","").replace("\n","", 1)
+            return HTMLNode("pre", children=[HTMLNode("code", value=block)])
+        case BlockType.HEADING:
+            headingLevel = findall(r"^#{1,6}", block)
+            regmatches = regmatch(HEADING_REGEX, block)
+            if regmatches == None:
+                # This should not even trigger since pre-checks already validate and provide the block type
+                raise TypeError(f"invalid type {{type}} provided for block: {block}")
+            txt = regmatches[1]
+            return HTMLNode(f"h{len(headingLevel[0])}", value=txt)
+        case BlockType.QUOTE:
+            txt = regmatch(QUOTE_REGEX, block)
+            if txt == None:
+                raise TypeError(f"invalid type {{type}} provided for block: {block}")
+            return HTMLNode("blockquote", value=txt[1])
+        case BlockType.UNORDERED_LIST:
+            items = block.split("\n")
+            children = []
+            for li in items:
+                txt = text_to_textnodes(li.replace("-", "", 1).strip())
+                htmlNodes = []
+                for node in txt:
+                    htmlNodes.append(text_node_to_html_node(node))
+                children.append(HTMLNode("li", children=htmlNodes))
+            return HTMLNode("ul", children=children)
+        case BlockType.ORDERED_LIST:
+            items = block.split("\n")
+            children = []
+            count = 1
+            for li in items:
+                txt = text_to_textnodes(li.replace(f"{count}.", "", 1).strip())
+                htmlNodes = []
+                for node in txt:
+                    htmlNodes.append(text_node_to_html_node(node))
+                children.append(HTMLNode("li", children=htmlNodes))
+                count+=1
+            return HTMLNode("ol", children=children)
+    return LeafNode(value=block)
+
+def markdown_to_html_node(markdown):
+    blocks = markdown_to_blocks(markdown)
+    nodes = []
+    for block in blocks:
+        type = block_to_block_type(block)
+        nodes.append(block_to_html_node(block, type))
+    return ParentNode("div", children=nodes)
+    

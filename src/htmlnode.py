@@ -1,3 +1,11 @@
+from enum import Enum as __Enum
+class BlockType(__Enum):
+    PARAGRAPH  = "paragraph_block"
+    HEADING = "heading_block"
+    CODE = "code_block"
+    QUOTE = "quote_block"
+    ORDERED_LIST = "ordered_li_block"
+    UNORDERED_LIST = "unordered_li_block"
 
 class HTMLNode:
     def __init__(self, tag: str | None = None, value: str | None = None, children: list['HTMLNode'] = [], props: dict = {}):
@@ -14,7 +22,7 @@ class HTMLNode:
         self.children = children
     
     def to_html(self):
-        raise NotImplementedError()
+        return self.__repr__()
     
     def props_to_html(self) -> str:
         if len(self.props) == 0:
