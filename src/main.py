@@ -4,6 +4,8 @@ from helpers import generate_page
 
 ASSETS_DIR = "static"
 PUBLIC_DIR = "public"
+CONTENT_DIR = "content"
+HTML_TEMPLATE = "template.html"
 
 def emptyDir(dir: str):
     if not path.exists(dir):
@@ -38,7 +40,8 @@ def main():
     emptyDir(public_path)
     copyItems(assets_path, public_path)
 
-    generate_page("content/index.md", "template.html", "public/index.html")
+    content = path.join(getcwd(),CONTENT_DIR)
+    generate_page(content, HTML_TEMPLATE, public_path)
     
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@
 from textnode import TextNode, TextType
 from htmlnode import LeafNode, BlockType, HTMLNode, ParentNode
 from re import findall, match as regmatch
-from os import path, mkdir
+from os import path, listdir, makedirs
 
 def text_node_to_html_node(text_node: TextNode):
     match text_node.text_type:
@@ -202,7 +202,17 @@ def extract_title(markdown: str):
     return title[1].strip()
 
 def generate_page(from_path, template_path, dest_path):
+    if path.isdir(from_path):
+        for objName in listdir(from_path):
+            src = path.join(from_path, objName)
+            dest = path.join(dest_path, objName.replace(".md", ".html"))
+            generate_page(src, template_path, dest)
+        return
     print(f"Generating page form {from_path} to {dest_path} using {template_path}")
+    dest = path.dirname(dest_path)
+    if not path.exists(dest):
+        makedirs(dest)
+
     md = ""
     original_html = ""
     with open(from_path,"r") as f:
@@ -217,10 +227,6 @@ def generate_page(from_path, template_path, dest_path):
 
     original_html = original_html.replace("{{ Title }}", title)
     original_html = original_html.replace("{{ Content }}", dom.to_html())
-
-    dest = path.dirname(dest_path)
-    if not dest:
-        mkdir(dest)
     
     with open(path.join(dest_path), "w+") as f:
         f.write(original_html)
