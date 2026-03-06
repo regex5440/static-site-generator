@@ -154,6 +154,16 @@ the **same** even with inline stuff
         node = markdown_to_html_node(md)
         html = node.to_html()
         self.assertEqual(html, "<div><h2>Description</h2><blockquote>The biggest quote a person can ever quote is a quote which quotes rest of the quotes</blockquote></div>")
+    def test_multiline_quote(self):
+        md = """
+> The biggest quote starts here
+> and
+> ends here
+"""
+
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(html, "<div><blockquote>The biggest quote starts here and ends here</blockquote></div>")
     
     def test_unordered_list_with_nested_text(self):
         md = """

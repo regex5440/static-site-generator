@@ -2,6 +2,7 @@
 from textnode import TextNode, TextType
 from htmlnode import LeafNode, BlockType, HTMLNode, ParentNode
 from re import findall, match as regmatch
+from os import path, mkdir
 
 def text_node_to_html_node(text_node: TextNode):
     match text_node.text_type:
@@ -119,7 +120,7 @@ def markdown_to_blocks(markdown: str):
 
 HEADING_REGEX = r"^#{1,6}\s(.+)$"
 CODE_BLOCK_REGEX = r"^```\n(.+\n?)+```$"
-QUOTE_REGEX = r"^>\s?(.+)$"
+QUOTE_REGEX = r"(>\s?.+\n?)+$"
 UNORDERED_LI_REGEX = r"^(\n?-\s.+)+$"
 ORDERED_LI_REGEX = r"^(\n?\d\.\s.+)+$"
 
@@ -160,7 +161,8 @@ def block_to_html_node(block: str, type: BlockType):
             txt = regmatch(QUOTE_REGEX, block)
             if txt == None:
                 raise TypeError(f"invalid type {{type}} provided for block: {block}")
-            return HTMLNode("blockquote", value=txt[1])
+            txt = txt[0].replace(">","", 1).replace("\n>", "")
+            return HTMLNode("blockquote", value=txt.strip())
         case BlockType.UNORDERED_LIST:
             items = block.split("\n")
             children = []
@@ -193,3 +195,32 @@ def markdown_to_html_node(markdown):
         nodes.append(block_to_html_node(block, type))
     return ParentNode("div", children=nodes)
     
+def extract_title(markdown: str):
+    title = regmatch(r"^#\s(.+)", markdown)
+    if title is None:
+        raise Exception("No header found")
+    return title[1].strip()
+
+def generate_page(from_path, template_path, dest_path):
+    print(f"Generating page form {from_path} to {dest_path} using {template_path}")
+    md = ""
+    original_html = ""
+    with open(from_path,"r") as f:
+        md = f.read()
+        f.close()
+    with open(template_path, "r") as f:
+        original_html = f.read()
+        f.close()
+    
+    dom = markdown_to_html_node(md)
+    title = extract_title(md)
+
+    original_html = original_html.replace("{{ Title }}", title)
+    original_html = original_html.replace("{{ Content }}", dom.to_html())
+
+    dest = path.dirname(dest_path)
+    if not dest:
+        mkdir(dest)
+    
+    with open(path.join(dest_path), "w+") as f:
+        f.write(original_html)

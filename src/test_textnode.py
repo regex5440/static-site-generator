@@ -1,7 +1,7 @@
 import unittest
 
 from textnode import TextNode, TextType
-from helpers import text_node_to_html_node, split_nodes_delimiter, extract_markdown_images, extract_markdown_links, split_nodes_image, split_nodes_link, text_to_textnodes
+from helpers import text_node_to_html_node, split_nodes_delimiter, extract_markdown_images, extract_markdown_links, split_nodes_image, split_nodes_link, text_to_textnodes, extract_title
 
 
 class TestTextNode(unittest.TestCase):
@@ -146,6 +146,10 @@ class TestTextNode(unittest.TestCase):
             TextNode("link", TextType.LINK, "https://hdxdev.in"),
         ]
         self.assertListEqual(nodes, expected)
+    
+    def test_extract_title(self):
+        title = extract_title("# Hello")
+        self.assertEqual(title, "Hello")
 
 if __name__ == "__main__":
     unittest.main()
